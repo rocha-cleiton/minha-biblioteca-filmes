@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Biblioteca de Filmes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+    <style>
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen">
+    <!-- Header -->
+    <header class="bg-gray-800 shadow-lg border-b border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <h1 class="text-xl lg:text-2xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 11V9a1 1 0 011-1h8a1 1 0 011 1v6M7 15l4 4 4-4"></path>
+                    </svg>
+                    Biblioteca de Filmes
+                </h1>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="showApiConfigModal()" id="apiStatusBtn" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                        Config API
+                    </button>
+                    <button onclick="showAddMovieModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Adicionar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="mt-3 flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Pesquisar filmes..." class="w-full bg-gray-700 text-white pl-9 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" onkeyup="filterMovies()">
+                </div>
+                
+                <select id="yearFilter" onchange="filterMovies()" class="bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option value="all">Todos os Anos</option>
+                </select>
+
+                <select id="watchedFilter" onchange="filterMovies()" class="bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option value="all">Todos</option>
+                    <option value="watched">Assistidos</option>
+                    <option value="unwatched">Não Assistidos</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats -->
+    <div class="max-w-7xl mx-auto px-4 py-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 11V9a1 1 0 011-1h8a1 1 0 011 1v6M7 15l4 4 4-4"></path>
+                    </svg>
+                    <div>
+                        <p class="text-gray-400 text-sm">Total</p>
+                        <p class="text-xl font-bold text-white" id="totalCount">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <div>
+                        <p class="text-gray-400 text-sm">Assistidos</p>
+                        <p class="text-xl font-bold text-white" id="watchedCount">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L12 12m-3.122-3.122l-3.879-3.879m7.742 7.742l4.242 4.242M9.88 9.88l-6.01-6.01"></path>
+                    </svg>
+                    <div>
+                        <p class="text-gray-400 text-sm">Pendentes</p>
+                        <p class="text-xl font-bold text-white" id="pendingCount">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                    </svg>
+                    <div>
+                        <p class="text-gray-400 text-sm">Média</p>
+                        <p class="text-xl font-bold text-white" id="averageRating">0.0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Movies Grid -->
+        <div id="moviesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+
+        <!-- No Movies Message -->
+        <div id="noMoviesMessage" class="text-center py-8 col-span-full hidden">
+            <svg class="mx-auto text-gray-500 mb-2 w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 11V9a1 1 0 011-1h8a1 1 0 011 1v6M7 15l4 4 4-4"></path>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-400 mb-1">Nenhum filme encontrado</h3>
+            <p class="text-gray-500 text-sm">Tente ajustar os filtros ou adicione novos filmes.</p>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- API Config Modal -->
+    <div id="apiConfigModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">Configurar API TMDb</h2>
+                <button onclick="hideApiConfigModal()" class="text-gray-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="apiStatus" class="mb-4 p-3 rounded-lg border hidden">
+                <div class="flex items-center gap-2">
+                    <div id="apiStatusIcon"></div>
+                    <span id="apiStatusText" class="font-medium"></span>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-blue-900/20 border border-blue-600 rounded-lg p-4">
+                    <h3 class="text-blue-400 font-semibold mb-2">Como obter sua chave:</h3>
+                    <ol class="text-blue-200 text-sm space-y-1">
+                        <li>1. Acesse <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" class="underline">themoviedb.org</a></li>
+                        <li>2. Crie uma conta gratuita</li>
+                        <li>3. Vá em Settings → API</li>
+                        <li>4. Clique em "Create" → "Developer"</li>
+                        <li>5. Preencha os dados e copie sua API Key</li>
+                    </ol>
+                </div>
+
+                <input type="password" id="apiKeyInput" placeholder="Cole sua chave de API aqui..." class="w-full bg-gray-700 text-white p-3 rounded-lg">
+
+                <div class="flex gap-2">
+                    <button onclick="testApiKey()" id="testApiBtn" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                        Testar API
+                    </button>
+                    <button onclick="saveApiKey()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors">
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Movie Modal -->
+    <div id="addMovieModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Adicionar Filme</h2>
+                <button onclick="hideAddMovieModal()" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- API Search Section -->
+            <div class="bg-gray-700 rounded-lg p-4 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                        Buscar na Base de Dados (TMDb)
+                    </h3>
+                </div>
+                
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="apiSearchInput" placeholder="Digite o nome do filme para buscar..." class="flex-1 bg-gray-600 text-white p-3 rounded-lg">
+                    <button onclick="searchMoviesAPI()" id="searchApiBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2">
+                        Buscar
+                    </button>
+                </div>
+
+                <div id="apiWarning" class="border rounded-lg p-3 mb-4 bg-yellow-900/20 border-yellow-600 hidden">
+                    <p class="text-yellow-200 text-sm">Configure sua chave de API do TMDb para usar a busca automática.</p>
+                </div>
+
+                <div id="apiSearchResults" class="space-y-3 max-h-60 overflow-y-auto"></div>
+            </div>
+
+            <div class="border-t border-gray-600 pt-6">
+                <h3 class="text-lg font-semibold text-white mb-4">Ou adicione manualmente:</h3>
+                
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="movieTitle" placeholder="Título" class="bg-gray-700 text-white p-3 rounded-lg">
+                        <input type="text" id="movieOriginalTitle" placeholder="Título Original" class="bg-gray-700 text-white p-3 rounded-lg">
+                        <input type="number" id="movieYear" placeholder="Ano" class="bg-gray-700 text-white p-3 rounded-lg">
+                        <input type="text" id="movieCountry" placeholder="País" class="bg-gray-700 text-white p-3 rounded-lg">
+                        <input type="text" id="movieGenres" placeholder="Gêneros (separados por vírgula)" class="bg-gray-700 text-white p-3 rounded-lg">
+                        <input type="text" id="movieLanguage" placeholder="Idioma" class="bg-gray-700 text-white p-3 rounded-lg">
+                        <input type="number" id="movieDuration" placeholder="Duração (minutos)" class="bg-gray-700 text-white p-3 rounded-lg">
+                        <input type="url" id="moviePoster" placeholder="URL da Capa" class="bg-gray-700 text-white p-3 rounded-lg">
+                    </div>
+                    <textarea id="movieSynopsis" placeholder="Sinopse" class="w-full bg-gray-700 text-white p-3 rounded-lg h-32"></textarea>
+                    <button onclick="addMovieManually()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors">
+                        Adicionar Filme
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movie Detail Modal -->
+    <div id="movieDetailModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="relative">
+                <img id="detailPoster" class="w-full h-96 object-cover" alt="">
+                <div class="absolute inset-0 bg-gradient-to-t from-gray-800 via-transparent to-transparent"></div>
+                <button onclick="hideMovieDetailModal()" class="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                <div id="detailRating" class="absolute top-4 left-4 bg-yellow-500 text-black px-3 py-2 rounded-lg font-bold flex items-center gap-2 hidden">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                    </svg>
+                    <span id="detailRatingValue"></span>/10
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h1 id="detailTitle" class="text-3xl font-bold text-white mb-2"></h1>
+                        <p id="detailOriginalTitle" class="text-xl text-gray-300 mb-4"></p>
+                    </div>
+                    <button onclick="toggleWatchedDetail()" id="watchedToggleBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-gray-600 hover:bg-gray-700 text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        <span id="watchedToggleText">Marcar como Assistido</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="flex items-center gap-2 text-gray-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-9 11V9a1 1 0 011-1h8a1 1 0 011 1v6"></path>
+                        </svg>
+                        <span id="detailYear"></span>
+                    </div>
+                    <div class="flex items-center gap-2 text-gray-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span id="detailDuration"></span>
+                    </div>
+                    <div class="flex items-center gap-2 text-gray-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span id="detailCountry"></span>
+                    </div>
+                    <div class="flex items-center gap-2 text-gray-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 11V9a1 1 0 011-1h8a1 1 0 011 1v6M7 15l4 4 4-4"></path>
+                        </svg>
+                        <span id="detailLanguage"></span>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-white mb-2">Gêneros</h3>
+                    <div id="detailGenres" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-white mb-2">Sinopse</h3>
+                    <p id="detailSynopsis" class="text-gray-300 leading-relaxed"></p>
+                </div>
+
+                <div id="watchedInfo" class="bg-green-900/30 border border-green-600 rounded-lg p-4 hidden">
+                    <div class="flex items-center gap-2 text-green-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="font-medium">Assistido em <span id="watchedDate"></span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let movies = [];
+        let filteredMovies = [];
+        let currentDetailMovie = null;
+        const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+        const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
+        
+        // Genre mapping
+        const genreMap = {
+            28: "Ação", 12: "Aventura", 16: "Animação", 35: "Comédia", 80: "Crime",
+            99: "Documentário", 18: "Drama", 10751: "Família", 14: "Fantasia",
+            36: "História", 27: "Terror", 10402: "Música", 9648: "Mistério",
+            10749: "Romance", 878: "Ficção Científica", 10770: "Cinema TV",
+            53: "Thriller", 10752: "Guerra", 37: "Faroeste"
+        };
+
+        // Language mapping
+        const languageMap = {
+            'en': 'Inglês', 'pt': 'Português', 'es': 'Espanhol', 'fr': 'Francês',
+            'de': 'Alemão', 'it': 'Italiano', 'ja': 'Japonês', 'ko': 'Coreano',
+            'zh': 'Chinês', 'ru': 'Russo', 'ar': 'Árabe', 'hi': 'Hindi'
+        };
+
+        // Sample movies
+        const sampleMovies = [
+            {
+                id: 1,
+                title: "Blade Runner 2049",
+                originalTitle: "Blade Runner 2049",
+                year: 2017,
+                country: "Estados Unidos",
+                genres: ["Ficção Científica", "Thriller"],
+                language: "Inglês",
+                duration: 164,
+                synopsis: "Trinta anos após os eventos do primeiro filme, um novo blade runner, K, descobre um segredo há muito enterrado que tem o potencial de mergulhar o que resta da sociedade no caos.",
+                poster: "https://via.placeholder.com/300x450/1f2937/ffffff?text=Blade+Runner+2049",
+                watched: true,
+                watchedDate: "2024-03-15",
+                rating: 8.0,
+                tmdbId: 335984
+            },
+            {
+                id: 2,
+                title: "Parasita",
+                originalTitle: "기생충",
+                year: 2019,
+                country: "Coreia do Sul",
+                genres: ["Drama", "Thriller", "Comédia"],
+                language: "Coreano",
+                duration: 132,
+                synopsis: "Toda a família de Ki-taek está desempregada, vivendo num porão sujo e apertado. Uma obra-prima sobre a desigualdade social.",
+                poster: "https://via.placeholder.com/300x450/374151/ffffff?text=Parasita",
+                watched: false,
+                watchedDate: null,
+                rating: 8.6,
+                tmdbId: 496243
+            },
+            {
+                id: 3,
+                title: "Interestelar",
+                originalTitle: "Interstellar",
+                year: 2014,
+                country: "Estados Unidos",
+                genres: ["Ficção Científica", "Drama"],
+                language: "Inglês",
+                duration: 169,
+                synopsis: "As reservas naturais da Terra estão chegando ao fim e um grupo de astronautas recebe a missão de verificar possíveis planetas para receberem a população mundial.",
+                poster: "https://via.placeholder.com/300x450/4b5563/ffffff?text=Interstellar",
+                watched: true,
+                watchedDate: "2024-01-20",
+                rating: 8.7,
+                tmdbId: 157336
+            }
+        ];
+
+        // Initialize app
+        function init() {
+            loadMovies();
+            loadApiKey();
+            updateStats();
+            updateYearFilter();
+            renderMovies();
+        }
+
+        // Load movies from localStorage or use sample data
+        function loadMovies() {
+            const savedMovies = localStorage.getItem('movieLibrary');
+            if (savedMovies) {
+                movies = JSON.parse(savedMovies);
+            } else {
+                movies = [...sampleMovies];
+                saveMovies();
+            }
+            filteredMovies = [...movies];
+        }
+
+        // Save movies to localStorage
+        function saveMovies() {
+            localStorage.setItem('movieLibrary', JSON.stringify(movies));
+        }
+
+        // Load API key
+        function loadApiKey() {
+            const apiKey = localStorage.getItem('tmdb_api_key');
+            if (apiKey) {
+                document.getElementById('apiKeyInput').value = apiKey;
+                testApiKey();
+            }
+        }
+
+        // Test API key
+        async function testApiKey() {
+            const apiKey = document.getElementById('apiKeyInput').value;
+            if (!apiKey) return;
+
+            updateApiStatus('testing', 'Testando conexão...');
+            
+            try {
+                const response = await fetch(`${TMDB_BASE_URL}/configuration?api_key=${apiKey}`);
+                if (response.ok) {
+                    updateApiStatus('working', 'API funcionando corretamente!');
+                    updateApiButton('working');
+                } else {
+                    updateApiStatus('error', 'Erro na API - verifique sua chave');
+                    updateApiButton('error');
+                }
+            } catch (error) {
+                updateApiStatus('error', 'Erro na conexão');
+                updateApiButton('error');
+            }
+        }
+
+        // Update API status
+        function updateApiStatus(status, message) {
+            const statusDiv = document.getElementById('apiStatus');
+            const iconDiv = document.getElementById('apiStatusIcon');
+            const textSpan = document.getElementById('apiStatusText');
+            
+            statusDiv.className = `mb-4 p-3 rounded-lg border ${
+                status === 'working' ? 'bg-green-900/30 border-green-600 text-green-400' :
+                status === 'error' ? 'bg-red-900/30 border-red-600 text-red-400' :
+                'bg-blue-900/30 border-blue-600 text-blue-400'
+            }`;
+            
+            const icons = {
+                testing: '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>',
+                working: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+                error: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'
+            };
+            
+            iconDiv.innerHTML = icons[status];
+            textSpan.textContent = message;
+            statusDiv.classList.remove('hidden');
+        }
+
+        // Update API button
+        function updateApiButton(status) {
+            const btn = document.getElementById('apiStatusBtn');
+            const classes = {
+                working: 'bg-green-600 hover:bg-green-700 text-white',
+                error: 'bg-red-600 hover:bg-red-700 text-white',
+                unknown: 'bg-yellow-600 hover:bg-yellow-700 text-white'
+            };
+            
+            const texts = {
+                working: 'API OK',
+                error: 'API Erro',
+                unknown: 'Config API'
+            };
+            
+            btn.className = `px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${classes[status]}`;
+            btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>${texts[status]}`;
+        }
+
+        // Save API key
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKeyInput').value;
+            if (apiKey) {
+                localStorage.setItem('tmdb_api_key', apiKey);
+                hideApiConfigModal();
+            }
+        }
+
+        // Search movies in TMDb API
+        async function searchMoviesAPI() {
+            const apiKey = localStorage.getItem('tmdb_api_key');
+            const query = document.getElementById('apiSearchInput').value;
+            
+            if (!apiKey) {
+                alert('Configure sua chave de API primeiro!');
+                return;
+            }
+            
+            if (!query) return;
+            
+            const btn = document.getElementById('searchApiBtn');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Buscando...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${TMDB_BASE_URL}/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=pt-BR&page=1`);
+                const data = await response.json();
+                
+                displayApiResults(data.results.slice(0, 5));
+            } catch (error) {
+                console.error('Erro na busca:', error);
+                alert('Erro na busca. Verifique sua conexão e chave de API.');
+            } finally {
+                btn.innerHTML = 'Buscar';
+                btn.disabled = false;
+            }
+        }
+
+        // Display API search results
+        function displayApiResults(results) {
+            const container = document.getElementById('apiSearchResults');
+            container.innerHTML = '';
+            
+            results.forEach(movie => {
+                const div = document.createElement('div');
+                div.className = 'bg-gray-700 rounded-lg p-4 flex gap-4';
+                div.innerHTML = `
+                    <img src="${movie.poster_path ? TMDB_IMAGE_BASE + movie.poster_path : 'https://via.placeholder.com/100x150/374151/ffffff?text=Sem+Imagem'}" 
+                         alt="${movie.title}" class="w-16 h-24 object-cover rounded">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-white">${movie.title}</h3>
+                        <p class="text-gray-400 text-sm">${movie.original_title}</p>
+                        <p class="text-gray-300 text-sm">${movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}</p>
+                        <p class="text-gray-400 text-xs line-clamp-2 mt-1">${movie.overview || 'Sem sinopse disponível'}</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            ${movie.vote_average > 0 ? `
+                                <div class="flex items-center gap-1 text-yellow-400">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                    </svg>
+                                    <span class="text-sm">${movie.vote_average.toFixed(1)}</span>
+                                </div>
+                            ` : ''}
+                            <button onclick="addMovieFromAPI(${JSON.stringify(movie).replace(/"/g, '&quot;')})" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Adicionar
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Add movie from API
+        function addMovieFromAPI(apiMovie) {
+            const newMovie = {
+                id: Date.now(),
+                title: apiMovie.title,
+                originalTitle: apiMovie.original_title,
+                year: apiMovie.release_date ? new Date(apiMovie.release_date).getFullYear() : new Date().getFullYear(),
+                country: "Estados Unidos",
+                genres: apiMovie.genre_ids ? apiMovie.genre_ids.map(id => genreMap[id] || "Desconhecido").filter(Boolean) : [],
+                language: languageMap[apiMovie.original_language] || apiMovie.original_language.toUpperCase(),
+                duration: 120,
+                synopsis: apiMovie.overview || "Sinopse não disponível.",
+                poster: apiMovie.poster_path ? `${TMDB_IMAGE_BASE}${apiMovie.poster_path}` : '',
+                watched: false,
+                watchedDate: null,
+                rating: apiMovie.vote_average || 0,
+                tmdbId: apiMovie.id
+            };
+
+            movies.push(newMovie);
+            saveMovies();
+            updateAll();
+            hideAddMovieModal();
+        }
+
+        // Add movie manually
+        function addMovieManually() {
+            const title = document.getElementById('movieTitle').value;
+            const year = document.getElementById('movieYear').value;
+            
+            if (!title || !year) {
+                alert('Por favor, preencha pelo menos o título e o ano.');
+                return;
+            }
+
+            const newMovie = {
+                id: Date.now(),
+                title: title,
+                originalTitle: document.getElementById('movieOriginalTitle').value || title,
+                year: parseInt(year) || new Date().getFullYear(),
+                country: document.getElementById('movieCountry').value || 'Não informado',
+                genres: document.getElementById('movieGenres').value ? 
+                       document.getElementById('movieGenres').value.split(',').map(g => g.trim()) : [],
+                language: document.getElementById('movieLanguage').value || 'Não informado',
+                duration: parseInt(document.getElementById('movieDuration').value) || 0,
+                synopsis: document.getElementById('movieSynopsis').value || 'Sinopse não disponível.',
+                poster: document.getElementById('moviePoster').value || '',
+                watched: false,
+                watchedDate: null,
+                rating: 0,
+                tmdbId: null
+            };
+
+            movies.push(newMovie);
+            saveMovies();
+            updateAll();
+            hideAddMovieModal();
+            clearForm();
+        }
+
+        // Clear form
+        function clearForm() {
+            document.getElementById('movieTitle').value = '';
+            document.getElementById('movieOriginalTitle').value = '';
+            document.getElementById('movieYear').value = '';
+            document.getElementById('movieCountry').value = '';
+            document.getElementById('movieGenres').value = '';
+            document.getElementById('movieLanguage').value = '';
+            document.getElementById('movieDuration').value = '';
+            document.getElementById('movieSynopsis').value = '';
+            document.getElementById('moviePoster').value = '';
+            document.getElementById('apiSearchInput').value = '';
+            document.getElementById('apiSearchResults').innerHTML = '';
+        }
+
+        // Toggle watched status
+        function toggleWatched(movieId) {
+            const movie = movies.find(m => m.id === movieId);
+            if (movie) {
+                movie.watched = !movie.watched;
+                movie.watchedDate = movie.watched ? new Date().toISOString().split('T')[0] : null;
+                saveMovies();
+                updateAll();
+            }
+        }
+
+        // Toggle watched in detail modal
+        function toggleWatchedDetail() {
+            if (currentDetailMovie) {
+                toggleWatched(currentDetailMovie.id);
+                const updatedMovie = movies.find(m => m.id === currentDetailMovie.id);
+                showMovieDetail(updatedMovie);
+            }
+        }
+
+        // Filter movies
+        function filterMovies() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const yearFilter = document.getElementById('yearFilter').value;
+            const watchedFilter = document.getElementById('watchedFilter').value;
+
+            filteredMovies = movies.filter(movie => {
+                const matchesSearch = movie.title.toLowerCase().includes(searchTerm) ||
+                                    movie.originalTitle.toLowerCase().includes(searchTerm) ||
+                                    movie.genres.some(genre => genre.toLowerCase().includes(searchTerm));
+                
+                const matchesYear = yearFilter === 'all' || movie.year.toString() === yearFilter;
+                
+                const matchesWatched = watchedFilter === 'all' ||
+                                     (watchedFilter === 'watched' && movie.watched) ||
+                                     (watchedFilter === 'unwatched' && !movie.watched);
+                
+                return matchesSearch && matchesYear && matchesWatched;
+            });
+
+            renderMovies();
+        }
+
+        // Update year filter options
+        function updateYearFilter() {
+            const yearFilter = document.getElementById('yearFilter');
+            const years = [...new Set(movies.map(movie => movie.year))].sort((a, b) => b - a);
+            
+            // Clear existing options except "all"
+            yearFilter.innerHTML = '<option value="all">Todos os Anos</option>';
+            
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearFilter.appendChild(option);
+            });
+        }
+
+        // Update stats
+        function updateStats() {
+            const total = movies.length;
+            const watched = movies.filter(m => m.watched).length;
+            const pending = total - watched;
+            const averageRating = total > 0 ? 
+                (movies.reduce((acc, m) => acc + (m.rating || 0), 0) / total).toFixed(1) : '0.0';
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('watchedCount').textContent = watched;
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('averageRating').textContent = averageRating;
+        }
+
+        // Update all
+        function updateAll() {
+            updateStats();
+            updateYearFilter();
+            filterMovies();
+        }
+
+        // Render movies
+        function renderMovies() {
+            const grid = document.getElementById('moviesGrid');
+            const noMoviesMsg = document.getElementById('noMoviesMessage');
+
+            if (filteredMovies.length === 0) {
+                grid.innerHTML = '';
+                noMoviesMsg.classList.remove('hidden');
+                return;
+            }
+
+            noMoviesMsg.classList.add('hidden');
+            
+            grid.innerHTML = filteredMovies.map(movie => `
+                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="relative group">
+                        <img src="${movie.poster || 'https://via.placeholder.com/300x450/374151/ffffff?text=' + encodeURIComponent(movie.title)}" 
+                             alt="${movie.title}" class="w-full h-60 object-cover"
+                             onerror="this.src='https://via.placeholder.com/300x450/374151/ffffff?text=' + encodeURIComponent('${movie.title}')">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div class="absolute bottom-2 left-2 right-2">
+                                <button onclick="showMovieDetail(${JSON.stringify(movie).replace(/"/g, '&quot;')})" 
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-sm font-medium transition-colors">
+                                    Detalhes
+                                </button>
+                            </div>
+                        </div>
+                        <button onclick="toggleWatched(${movie.id})" 
+                                class="absolute top-2 right-2 p-1.5 rounded-full ${movie.watched ? 'bg-green-600' : 'bg-gray-600'} text-white hover:scale-110 transition-all">
+                            ${movie.watched ? 
+                                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' :
+                                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>'
+                            }
+                        </button>
+                        ${movie.rating > 0 ? `
+                            <div class="absolute top-2 left-2 bg-yellow-500 text-black px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                </svg>
+                                ${movie.rating.toFixed(1)}
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="p-3">
+                        <h3 class="text-sm font-bold text-white mb-1 line-clamp-2">${movie.title}</h3>
+                        <p class="text-gray-400 text-xs mb-2">${movie.originalTitle}</p>
+                        <div class="flex items-center justify-between text-xs text-gray-300 mb-2">
+                            <span>${movie.year}</span>
+                            <span>${movie.duration > 0 ? movie.duration + 'min' : 'N/A'}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1 mb-2">
+                            ${movie.genres.slice(0, 2).map(genre => `
+                                <span class="px-2 py-0.5 bg-blue-900 text-blue-200 text-xs rounded">${genre}</span>
+                            `).join('')}
+                        </div>
+                        ${movie.watched && movie.watchedDate ? `
+                            <div class="text-xs text-green-400 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                ${new Date(movie.watchedDate).toLocaleDateString('pt-BR')}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Show movie detail modal
+        function showMovieDetail(movie) {
+            currentDetailMovie = movie;
+            const modal = document.getElementById('movieDetailModal');
+            
+            document.getElementById('detailPoster').src = movie.poster || 'https://via.placeholder.com/800x400/374151/ffffff?text=' + encodeURIComponent(movie.title);
+            document.getElementById('detailTitle').textContent = movie.title;
+            document.getElementById('detailOriginalTitle').textContent = movie.originalTitle;
+            document.getElementById('detailYear').textContent = movie.year;
+            document.getElementById('detailDuration').textContent = movie.duration > 0 ? movie.duration + ' min' : 'N/A';
+            document.getElementById('detailCountry').textContent = movie.country;
+            document.getElementById('detailLanguage').textContent = movie.language;
+            document.getElementById('detailSynopsis').textContent = movie.synopsis;
+            
+            // Rating
+            const ratingDiv = document.getElementById('detailRating');
+            if (movie.rating > 0) {
+                document.getElementById('detailRatingValue').textContent = movie.rating.toFixed(1);
+                ratingDiv.classList.remove('hidden');
+            } else {
+                ratingDiv.classList.add('hidden');
+            }
+            
+            // Genres
+            const genresDiv = document.getElementById('detailGenres');
+            genresDiv.innerHTML = movie.genres.map(genre => `
+                <span class="px-3 py-1 bg-blue-900 text-blue-200 rounded-lg">${genre}</span>
+            `).join('');
+            
+            // Watched toggle button
+            const watchedBtn = document.getElementById('watchedToggleBtn');
+            const watchedText = document.getElementById('watchedToggleText');
+            if (movie.watched) {
+                watchedBtn.className = 'flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-green-600 hover:bg-green-700 text-white';
+                watchedText.textContent = 'Assistido';
+            } else {
+                watchedBtn.className = 'flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-gray-600 hover:bg-gray-700 text-white';
+                watchedText.textContent = 'Marcar como Assistido';
+            }
+            
+            // Watched info
+            const watchedInfo = document.getElementById('watchedInfo');
+            if (movie.watched && movie.watchedDate) {
+                document.getElementById('watchedDate').textContent = new Date(movie.watchedDate).toLocaleDateString('pt-BR');
+                watchedInfo.classList.remove('hidden');
+            } else {
+                watchedInfo.classList.add('hidden');
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        // Modal functions
+        function showApiConfigModal() {
+            document.getElementById('apiConfigModal').classList.remove('hidden');
+        }
+
+        function hideApiConfigModal() {
+            document.getElementById('apiConfigModal').classList.add('hidden');
+        }
+
+        function showAddMovieModal() {
+            clearForm();
+            const apiKey = localStorage.getItem('tmdb_api_key');
+            const warning = document.getElementById('apiWarning');
+            if (!apiKey) {
+                warning.classList.remove('hidden');
+            } else {
+                warning.classList.add('hidden');
+            }
+            document.getElementById('addMovieModal').classList.remove('hidden');
+        }
+
+        function hideAddMovieModal() {
+            document.getElementById('addMovieModal').classList.add('hidden');
+        }
+
+        function hideMovieDetailModal() {
+            document.getElementById('movieDetailModal').classList.add('hidden');
+            currentDetailMovie = null;
+        }
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', init);
+
+        // Add enter key support for API search
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('apiSearchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchMoviesAPI();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
